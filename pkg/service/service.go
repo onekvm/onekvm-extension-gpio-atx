@@ -141,7 +141,11 @@ func (s *Service) UpdateSettings(payload string) *dbus.Error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	old := s.control
+	old, oldSettings := s.control, s.settings
+	oldConfig, oldConfigErr := oldSettings.config()
+	if oldConfigErr != nil {
+		return dbusError(fmt.Errorf("preserve current GPIO ATX settings: %w", oldConfigErr))
+	}
 	s.control = nil
 	if old != nil {
 		_ = old.Close()
@@ -149,15 +153,30 @@ func (s *Service) UpdateSettings(payload string) *dbus.Error {
 	next := s.newControl()
 	if err := next.Configure(config); err != nil {
 		_ = next.Close()
-		return dbusError(fmt.Errorf("apply GPIO ATX settings: %w", err))
+		applyErr := fmt.Errorf("apply GPIO ATX settings: %w", err)
+		return dbusError(s.restoreController(oldConfig, oldSettings, applyErr))
 	}
 	if err := writeSettings(s.userPath, requested); err != nil {
 		_ = next.Close()
-		return dbusError(err)
+		return dbusError(s.restoreController(oldConfig, oldSettings, err))
 	}
 	s.control, s.settings = next, selected
 	s.forwardChanges(next)
 	return nil
+}
+
+// restoreController keeps a rejected edit from disabling a previously working
+// ATX setup. The old line handles must be closed before trying the requested
+// mapping, so rollback necessarily re-opens the previous mapping.
+func (s *Service) restoreController(config contract.ATXConfig, settings Settings, cause error) error {
+	rollback := s.newControl()
+	if err := rollback.Configure(config); err != nil {
+		_ = rollback.Close()
+		return fmt.Errorf("%v; restore previous GPIO ATX settings: %w", cause, err)
+	}
+	s.control, s.settings = rollback, settings
+	s.forwardChanges(rollback)
+	return cause
 }
 
 func (s *Service) Changes() <-chan contract.ATXState { return s.changes }
