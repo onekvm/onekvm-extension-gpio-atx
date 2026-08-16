@@ -20,4 +20,8 @@ Build it with:
 
 ```sh
 make
+DESTDIR="$PWD/stage" make install PREFIX=/usr
 ```
+
+The install target deploys the provider together with its systemd unit, D-Bus
+policy/activation files, and OneKVM backend and system-plugin metadata.

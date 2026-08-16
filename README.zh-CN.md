@@ -18,4 +18,8 @@ machine 软件包会在 `/run/onekvm/gpio-atx-default.json` 提供只读默认�
 
 ```sh
 make
+DESTDIR="$PWD/stage" make install PREFIX=/usr
 ```
+
+安装目标会同时部署 provider、systemd unit、D-Bus policy/activation 文件，
+以及 OneKVM backend 和 system-plugin 描述文件。
