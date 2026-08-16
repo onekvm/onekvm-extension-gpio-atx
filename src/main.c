@@ -116,7 +116,16 @@ static void set_error(char *error, const char *format, ...) {
 static void prefix_error(char *error, const char *prefix) {
     char previous[ERROR_SIZE];
     snprintf(previous, sizeof(previous), "%s", error);
-    snprintf(error, ERROR_SIZE, "%s%s", prefix, previous);
+
+    size_t prefix_length = strlen(prefix);
+    if (prefix_length >= ERROR_SIZE) prefix_length = ERROR_SIZE - 1U;
+    memcpy(error, prefix, prefix_length);
+
+    size_t remaining = ERROR_SIZE - prefix_length - 1U;
+    size_t previous_length = strlen(previous);
+    if (previous_length > remaining) previous_length = remaining;
+    memcpy(error + prefix_length, previous, previous_length);
+    error[prefix_length + previous_length] = '\0';
 }
 
 static bool copy_string(char *destination, size_t size, const char *source, const char *name,
