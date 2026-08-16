@@ -1,0 +1,68 @@
+{
+  "id": "gpio-atx",
+  "name": "GPIO ATX",
+  "description": "Provides editable power, reset, PWR LED, and HDD LED GPIO mappings.",
+  "i18n": {
+    "default": {
+      "name": "GPIO ATX",
+      "description": "Provides editable power, reset, PWR LED, and HDD LED GPIO mappings."
+    },
+    "zh": {
+      "name": "GPIO ATX",
+      "description": "提供可编辑的电源、重置、PWR LED 和 HDD LED GPIO 映射。"
+    }
+  },
+  "kind": "device",
+  "version": "0.1.0",
+  "capabilities": ["atx", "atx.pwr-led", "atx.hdd-led"],
+  "icon": { "source": "lucide", "name": "circuit-board" },
+  "page": {
+    "title": "GPIO ATX",
+    "renderer": "layout",
+    "entrypoint": "web/page.json"
+  },
+  "unit": "onekvm-device-gpio-atx.service",
+  "settings_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "use_default",
+      "power_button_enabled", "power_button_chip", "power_button_offset", "power_button_active_low", "power_button_open_drain",
+      "reset_button_enabled", "reset_button_chip", "reset_button_offset", "reset_button_active_low", "reset_button_open_drain",
+      "pwr_led_enabled", "pwr_led_chip", "pwr_led_offset", "pwr_led_active_low",
+      "hdd_led_enabled", "hdd_led_chip", "hdd_led_offset", "hdd_led_active_low",
+      "power_short_ms", "power_long_ms", "reset_pulse_ms"
+    ],
+    "properties": {
+      "use_default": { "type": "boolean", "title": "Use machine default", "i18n": { "zh": "使用机型默认配置" }, "default": true },
+      "power_button_enabled": { "type": "boolean", "title": "Power button", "i18n": { "zh": "电源按钮" }, "default": true, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_button_chip": { "type": "string", "title": "Power button GPIO chip", "i18n": { "zh": "电源按钮 GPIO 芯片" }, "format": "path", "default": "/dev/gpiochip0", "maxLength": 128, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_button_offset": { "type": "integer", "title": "Power button line", "i18n": { "zh": "电源按钮引脚" }, "default": 0, "minimum": 0, "maximum": 4294967295, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_button_active_low": { "type": "boolean", "title": "Power button active low", "i18n": { "zh": "电源按钮低电平有效" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_button_open_drain": { "type": "boolean", "title": "Power button open drain", "i18n": { "zh": "电源按钮开漏输出" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_button_enabled": { "type": "boolean", "title": "Reset button", "i18n": { "zh": "重置按钮" }, "default": true, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_button_chip": { "type": "string", "title": "Reset button GPIO chip", "i18n": { "zh": "重置按钮 GPIO 芯片" }, "format": "path", "default": "/dev/gpiochip0", "maxLength": 128, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_button_offset": { "type": "integer", "title": "Reset button line", "i18n": { "zh": "重置按钮引脚" }, "default": 0, "minimum": 0, "maximum": 4294967295, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_button_active_low": { "type": "boolean", "title": "Reset button active low", "i18n": { "zh": "重置按钮低电平有效" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_button_open_drain": { "type": "boolean", "title": "Reset button open drain", "i18n": { "zh": "重置按钮开漏输出" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "pwr_led_enabled": { "type": "boolean", "title": "PWR LED", "i18n": { "zh": "PWR LED" }, "default": true, "enabled_when": { "field": "use_default", "equals": false } },
+      "pwr_led_chip": { "type": "string", "title": "PWR LED GPIO chip", "i18n": { "zh": "PWR LED GPIO 芯片" }, "format": "path", "default": "/dev/gpiochip0", "maxLength": 128, "enabled_when": { "field": "use_default", "equals": false } },
+      "pwr_led_offset": { "type": "integer", "title": "PWR LED line", "i18n": { "zh": "PWR LED 引脚" }, "default": 0, "minimum": 0, "maximum": 4294967295, "enabled_when": { "field": "use_default", "equals": false } },
+      "pwr_led_active_low": { "type": "boolean", "title": "PWR LED active low", "i18n": { "zh": "PWR LED 低电平有效" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "hdd_led_enabled": { "type": "boolean", "title": "HDD LED", "i18n": { "zh": "HDD LED" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "hdd_led_chip": { "type": "string", "title": "HDD LED GPIO chip", "i18n": { "zh": "HDD LED GPIO 芯片" }, "format": "path", "default": "/dev/gpiochip0", "maxLength": 128, "enabled_when": { "field": "use_default", "equals": false } },
+      "hdd_led_offset": { "type": "integer", "title": "HDD LED line", "i18n": { "zh": "HDD LED 引脚" }, "default": 0, "minimum": 0, "maximum": 4294967295, "enabled_when": { "field": "use_default", "equals": false } },
+      "hdd_led_active_low": { "type": "boolean", "title": "HDD LED active low", "i18n": { "zh": "HDD LED 低电平有效" }, "default": false, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_short_ms": { "type": "integer", "title": "Short power pulse (ms)", "i18n": { "zh": "短按电源时长（毫秒）" }, "default": 800, "minimum": 1, "maximum": 30000, "enabled_when": { "field": "use_default", "equals": false } },
+      "power_long_ms": { "type": "integer", "title": "Long power pulse (ms)", "i18n": { "zh": "长按电源时长（毫秒）" }, "default": 5000, "minimum": 1, "maximum": 30000, "enabled_when": { "field": "use_default", "equals": false } },
+      "reset_pulse_ms": { "type": "integer", "title": "Reset pulse (ms)", "i18n": { "zh": "重置脉冲时长（毫秒）" }, "default": 800, "minimum": 1, "maximum": 30000, "enabled_when": { "field": "use_default", "equals": false } }
+    }
+  },
+  "dbus": {
+    "bus_name": "org.onekvm.Device.GPIO1",
+    "object_path": "/org/onekvm/Device1",
+    "interface": "org.onekvm.Device1",
+    "get_settings": "GetSettings",
+    "update_settings": "UpdateSettings"
+  }
+}

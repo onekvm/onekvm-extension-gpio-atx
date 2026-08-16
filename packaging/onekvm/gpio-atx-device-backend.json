@@ -1,0 +1,8 @@
+{
+  "id": "gpio-atx",
+  "api_major": 1,
+  "bus_name": "org.onekvm.Device.GPIO1",
+  "object_path": "/org/onekvm/Device1",
+  "interface": "org.onekvm.Device1",
+  "capabilities": ["atx"]
+}

@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=org.onekvm.Device.GPIO1
+Exec=/usr/libexec/onekvm/onekvm-device-gpio-atx
+User=root
+SystemdService=onekvm-device-gpio-atx.service

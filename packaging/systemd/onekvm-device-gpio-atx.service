@@ -1,0 +1,22 @@
+[Unit]
+Description=OneKVM GPIO ATX capability provider
+Requires=dbus.service onekvm-machine-nanokvm-detect.service
+After=dbus.service onekvm-machine-nanokvm-detect.service
+Before=onekvm.service
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=dbus
+BusName=org.onekvm.Device.GPIO1
+ExecStart=/usr/libexec/onekvm/onekvm-device-gpio-atx
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/etc/onekvm
+
+[Install]
+WantedBy=multi-user.target

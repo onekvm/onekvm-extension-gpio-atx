@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "columns": 1,
+  "sections": [
+    {
+      "title": "Configuration source",
+      "i18n": {"default": "Configuration source", "zh": "配置来源"},
+      "columns": 1,
+      "settings": ["use_default"]
+    },
+    {
+      "title": "Button outputs",
+      "i18n": {"default": "Button outputs", "zh": "按钮输出"},
+      "columns": 1,
+      "settings": [
+        "power_button_enabled", "power_button_chip", "power_button_offset", "power_button_active_low", "power_button_open_drain",
+        "reset_button_enabled", "reset_button_chip", "reset_button_offset", "reset_button_active_low", "reset_button_open_drain"
+      ]
+    },
+    {
+      "title": "LED inputs",
+      "i18n": {"default": "LED inputs", "zh": "LED 输入"},
+      "columns": 1,
+      "settings": [
+        "pwr_led_enabled", "pwr_led_chip", "pwr_led_offset", "pwr_led_active_low",
+        "hdd_led_enabled", "hdd_led_chip", "hdd_led_offset", "hdd_led_active_low"
+      ]
+    },
+    {
+      "title": "Pulse timing",
+      "i18n": {"default": "Pulse timing", "zh": "脉冲时长"},
+      "columns": 1,
+      "settings": ["power_short_ms", "power_long_ms", "reset_pulse_ms"]
+    }
+  ]
+}
