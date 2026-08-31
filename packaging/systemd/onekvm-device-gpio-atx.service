@@ -19,4 +19,4 @@ PrivateTmp=yes
 ReadWritePaths=/etc/onekvm
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=onekvm.service
