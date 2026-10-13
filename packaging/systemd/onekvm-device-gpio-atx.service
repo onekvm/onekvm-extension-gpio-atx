@@ -1,8 +1,9 @@
 [Unit]
 Description=OneKVM GPIO ATX capability provider
-Requires=dbus.service onekvm-machine-nanokvm-detect.service
-After=dbus.service onekvm-machine-nanokvm-detect.service
-ConditionPathExists=/run/onekvm/gpio-atx-default.json
+Requires=dbus.service
+After=dbus.service
+ConditionPathExists=|/run/onekvm/gpio-atx-default.json
+ConditionPathExists=|/etc/onekvm/plugins/gpio-atx.json
 StartLimitIntervalSec=30
 StartLimitBurst=5
 

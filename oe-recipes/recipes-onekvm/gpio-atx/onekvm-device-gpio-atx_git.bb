@@ -14,11 +14,9 @@ inherit pkgconfig systemd
 
 DEPENDS = "systemd json-c"
 
-COMPATIBLE_MACHINE = "^onekvm-nanokvm$"
-PACKAGE_ARCH = "${MACHINE_ARCH}"
-
 do_compile() {
-    oe_runmake -C ${S} \
+    # externalsrc can contain a binary built for another machine's CPU.
+    oe_runmake -B -C ${S} \
         CC="${CC}" PKG_CONFIG="pkg-config"
 }
 
@@ -36,6 +34,6 @@ do_install() {
 SYSTEMD_SERVICE:${PN} = "onekvm-device-gpio-atx.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
-RDEPENDS:${PN} += "dbus onekvm-machine-nanokvm"
+RDEPENDS:${PN} += "dbus"
 RPROVIDES:${PN} += "onekvm-atx-backend"
 FILES:${PN} += "${libexecdir}/onekvm ${datadir}/dbus-1 ${datadir}/onekvm/device-backends ${datadir}/onekvm/system-plugins"
