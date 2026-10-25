@@ -2,7 +2,7 @@ SUMMARY = "OneKVM GPIO ATX capability provider"
 HOMEPAGE = "https://github.com/onekvm/onekvm-extension-gpio-atx"
 LICENSE = "CLOSED"
 PV = "0.1.0+git"
-PR = "r3"
+PR = "r4"
 OPKGBUILDCMD = 'opkg-build -Z gzip'
 
 ONEKVM_COMPONENT_GIT_URI ??= "git://github.com/onekvm/onekvm-extension-gpio-atx.git;protocol=https;branch=main"
