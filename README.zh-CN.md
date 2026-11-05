@@ -35,3 +35,7 @@ DESTDIR="$PWD/stage" make install PREFIX=/usr
 
 安装目标会同时部署 provider、systemd unit、D-Bus policy/activation 文件，
 以及 OneKVM backend 和 system-plugin 描述文件。
+
+GPIO ATX 是非系统插件，可在插件管理中禁用。禁用会停止 provider，并阻止其
+自动启动，重新启用后恢复。禁用期间仍可编辑配置；`--settings` 命令读取或更新
+配置时不会占用 GPIO。原生软件包仍随系统镜像提供，不在插件管理中卸载。

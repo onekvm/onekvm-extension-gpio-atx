@@ -824,9 +824,7 @@ static bool service_replace_controller(Service *service, const ATXConfig *config
     return true;
 }
 
-static bool service_initialize(Service *service, char *error) {
-    memset(service, 0, sizeof(*service));
-    controller_init(&service->controller);
+static bool selected_settings(Settings *settings, ATXConfig *config, char *error) {
     Settings saved;
     char *payload = NULL;
     int open_error = 0;
@@ -838,26 +836,67 @@ static bool service_initialize(Service *service, char *error) {
             return false;
         }
         if (!saved.use_default) {
-            ATXConfig config;
-            if (!config_from_settings(&saved, &config, error) ||
-                !service_replace_controller(service, &config, error)) {
-                return false;
-            }
-            service->settings = saved;
+            if (!config_from_settings(&saved, config, error)) return false;
+            *settings = saved;
             return true;
         }
     } else if (open_error != ENOENT) {
         prefix_error(error, "read GPIO ATX user settings: ");
         return false;
     }
-    ATXConfig config;
-    if (!read_atx_config_file(DEFAULT_CONFIG_PATH, &config, error)) {
+    if (!read_atx_config_file(DEFAULT_CONFIG_PATH, config, error)) {
         prefix_error(error, "read machine GPIO ATX default: ");
         return false;
     }
-    if (!service_replace_controller(service, &config, error)) return false;
-    service->settings = settings_from_config(&config, true);
+    *settings = settings_from_config(config, true);
     return true;
+}
+
+static bool service_initialize(Service *service, char *error) {
+    memset(service, 0, sizeof(*service));
+    controller_init(&service->controller);
+    ATXConfig config;
+    return selected_settings(&service->settings, &config, error) &&
+           service_replace_controller(service, &config, error);
+}
+
+/* Read/update settings without acquiring GPIO lines or registering on D-Bus. */
+static int settings_command(void) {
+    char error[ERROR_SIZE] = {0};
+    char *payload = NULL;
+    Settings selected;
+    ATXConfig config;
+    if (!read_file("/dev/stdin", &payload, NULL, error)) goto fail;
+    bool update = payload[0] != '\0';
+    if (update) {
+        Settings requested;
+        if (!parse_settings(payload, &requested, error)) goto fail;
+        if (requested.use_default) {
+            if (!read_atx_config_file(DEFAULT_CONFIG_PATH, &config, error)) goto fail;
+            selected = settings_from_config(&config, true);
+        } else {
+            if (!config_from_settings(&requested, &config, error)) goto fail;
+            selected = requested;
+        }
+        json_object *object = settings_json(&requested);
+        if (object == NULL) { set_error(error, "encode settings: out of memory"); goto fail; }
+        const char *encoded = json_object_to_json_string_ext(object, JSON_C_TO_STRING_PRETTY);
+        bool saved = encoded != NULL && atomic_write(USER_CONFIG_PATH, encoded, error);
+        json_object_put(object);
+        if (!saved) goto fail;
+    } else if (!selected_settings(&selected, &config, error)) {
+        goto fail;
+    }
+    free(payload);
+    json_object *object = settings_json(&selected);
+    if (object == NULL) { payload = NULL; set_error(error, "encode settings: out of memory"); goto fail; }
+    puts(json_object_to_json_string_ext(object, JSON_C_TO_STRING_PLAIN));
+    json_object_put(object);
+    return 0;
+fail:
+    free(payload);
+    fprintf(stderr, "onekvm-device-gpio-atx: %s\n", error);
+    return 1;
 }
 
 static bool service_restore(Service *service, const ATXConfig *config, const Settings *settings,
@@ -1209,6 +1248,11 @@ static int run(void) {
     return failed ? 1 : 0;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc == 2 && strcmp(argv[1], "--settings") == 0) return settings_command();
+    if (argc != 1) {
+        fprintf(stderr, "Usage: %s [--settings]\n", argv[0]);
+        return 1;
+    }
     return run();
 }

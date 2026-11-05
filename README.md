@@ -41,3 +41,9 @@ DESTDIR="$PWD/stage" make install PREFIX=/usr
 
 The install target deploys the provider together with its systemd unit, D-Bus
 policy/activation files, and OneKVM backend and system-plugin metadata.
+
+GPIO ATX is a non-system plugin and can be disabled in the plugin manager.
+Disabling stops the provider and blocks automatic activation until it is enabled
+again. Settings remain editable while disabled; the `--settings` command reads
+or updates them without opening GPIO lines. The native package remains part of
+the system image and is not removable through the plugin manager.
