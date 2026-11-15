@@ -16,7 +16,7 @@
   "settings_command": ["/usr/libexec/onekvm/onekvm-device-gpio-atx", "--settings"],
   "kind": "device",
   "version": "0.1.0",
-  "capabilities": ["atx", "atx.pwr-led", "atx.hdd-led"],
+  "capabilities": ["power", "power.pwr-led", "power.hdd-led"],
   "icon": { "source": "lucide", "name": "circuit-board" },
   "page": {
     "title": "GPIO ATX",

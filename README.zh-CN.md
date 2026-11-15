@@ -4,7 +4,9 @@
 
 本仓库包含 OneKVM GPIO ATX 扩展。扩展内部的
 `onekvm-device-gpio-atx` provider 通过 Linux GPIO character-device v2 API
-独占管理机箱电源键、重启键以及 PWR/HDD 指示灯输入。
+独占管理机箱电源键、重启键以及 PWR/HDD 指示灯输入，并提供 OneKVM `power`
+设备能力（`org.onekvm.Device1` 的 `PowerAction`、`GetPowerState` 和
+`PowerStateChanged`）。
 
 provider 是一个小型 ISO C17 守护进程，使用 `sd-bus`、`json-c` 和 GPIO
 cdev v2。它通过单个 `poll()` 循环处理 D-Bus 与 GPIO 边沿中断，不会周期性
@@ -19,7 +21,7 @@ provider 与板卡型号无关，不依赖具体的 machine 软件包。GPIO 默
 这一集成。已有的 `use_default: false` 用户映射也能在没有机型默认配置时启动
 provider。OpenEmbedded 按目标 CPU 架构打包。
 
-NanoKVM Pro Desk 与 PCIe 共用 ATX 映射，由 `onekvm-machine-nanokvm-pro`
+NanoKVM Pro Desk 与 PCIe 共用 GPIO 映射，由 `onekvm-machine-nanokvm-pro`
 提供：电源键 `gpiochip0:7`、重启键 `gpiochip1:3`、PWR 灯
 `gpiochip2:11`、HDD 灯 `gpiochip2:10`。按键输出高电平有效、空闲低电平；
 两个灯输入均低电平有效。这些是 bank 内偏移，不是厂商 sysfs 的全局 GPIO

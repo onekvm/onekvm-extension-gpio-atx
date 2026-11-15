@@ -35,5 +35,5 @@ SYSTEMD_SERVICE:${PN} = "onekvm-device-gpio-atx.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
 RDEPENDS:${PN} += "dbus"
-RPROVIDES:${PN} += "onekvm-atx-backend"
+RPROVIDES:${PN} += "onekvm-power-backend"
 FILES:${PN} += "${libexecdir}/onekvm ${datadir}/dbus-1 ${datadir}/onekvm/device-backends ${datadir}/onekvm/system-plugins"
