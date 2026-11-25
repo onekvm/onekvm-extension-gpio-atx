@@ -824,9 +824,7 @@ static bool service_replace_controller(Service *service, const ATXConfig *config
     return true;
 }
 
-static bool service_initialize(Service *service, char *error) {
-    memset(service, 0, sizeof(*service));
-    controller_init(&service->controller);
+static bool selected_settings(Settings *settings, ATXConfig *config, char *error) {
     Settings saved;
     char *payload = NULL;
     int open_error = 0;
@@ -838,26 +836,67 @@ static bool service_initialize(Service *service, char *error) {
             return false;
         }
         if (!saved.use_default) {
-            ATXConfig config;
-            if (!config_from_settings(&saved, &config, error) ||
-                !service_replace_controller(service, &config, error)) {
-                return false;
-            }
-            service->settings = saved;
+            if (!config_from_settings(&saved, config, error)) return false;
+            *settings = saved;
             return true;
         }
     } else if (open_error != ENOENT) {
         prefix_error(error, "read GPIO ATX user settings: ");
         return false;
     }
-    ATXConfig config;
-    if (!read_atx_config_file(DEFAULT_CONFIG_PATH, &config, error)) {
+    if (!read_atx_config_file(DEFAULT_CONFIG_PATH, config, error)) {
         prefix_error(error, "read machine GPIO ATX default: ");
         return false;
     }
-    if (!service_replace_controller(service, &config, error)) return false;
-    service->settings = settings_from_config(&config, true);
+    *settings = settings_from_config(config, true);
     return true;
+}
+
+static bool service_initialize(Service *service, char *error) {
+    memset(service, 0, sizeof(*service));
+    controller_init(&service->controller);
+    ATXConfig config;
+    return selected_settings(&service->settings, &config, error) &&
+           service_replace_controller(service, &config, error);
+}
+
+/* Read/update settings without acquiring GPIO lines or registering on D-Bus. */
+static int settings_command(void) {
+    char error[ERROR_SIZE] = {0};
+    char *payload = NULL;
+    Settings selected;
+    ATXConfig config;
+    if (!read_file("/dev/stdin", &payload, NULL, error)) goto fail;
+    bool update = payload[0] != '\0';
+    if (update) {
+        Settings requested;
+        if (!parse_settings(payload, &requested, error)) goto fail;
+        if (requested.use_default) {
+            if (!read_atx_config_file(DEFAULT_CONFIG_PATH, &config, error)) goto fail;
+            selected = settings_from_config(&config, true);
+        } else {
+            if (!config_from_settings(&requested, &config, error)) goto fail;
+            selected = requested;
+        }
+        json_object *object = settings_json(&requested);
+        if (object == NULL) { set_error(error, "encode settings: out of memory"); goto fail; }
+        const char *encoded = json_object_to_json_string_ext(object, JSON_C_TO_STRING_PRETTY);
+        bool saved = encoded != NULL && atomic_write(USER_CONFIG_PATH, encoded, error);
+        json_object_put(object);
+        if (!saved) goto fail;
+    } else if (!selected_settings(&selected, &config, error)) {
+        goto fail;
+    }
+    free(payload);
+    json_object *object = settings_json(&selected);
+    if (object == NULL) { payload = NULL; set_error(error, "encode settings: out of memory"); goto fail; }
+    puts(json_object_to_json_string_ext(object, JSON_C_TO_STRING_PLAIN));
+    json_object_put(object);
+    return 0;
+fail:
+    free(payload);
+    fprintf(stderr, "onekvm-device-gpio-atx: %s\n", error);
+    return 1;
 }
 
 static bool service_restore(Service *service, const ATXConfig *config, const Settings *settings,
@@ -936,26 +975,11 @@ static int method_get_capabilities(sd_bus_message *message, void *userdata,
     (void)userdata;
     (void)return_error;
     return sd_bus_reply_method_return(message, "s",
-                                      "{\"api_major\":1,\"api_minor\":2,\"atx\":true}");
+                                      "{\"api_major\":1,\"api_minor\":2,\"power\":true}");
 }
 
-static int method_configure_atx(sd_bus_message *message, void *userdata,
-                                sd_bus_error *return_error) {
-    (void)userdata;
-    const char *payload = NULL;
-    int result = sd_bus_message_read(message, "s", &payload);
-    if (result < 0) return result;
-    ATXConfig ignored;
-    char error[ERROR_SIZE] = {0};
-    if (!parse_atx_config(payload == NULL ? "" : payload, &ignored, error)) {
-        prefix_error(error, "decode ATX fallback: ");
-        return dbus_failure(return_error, error);
-    }
-    return sd_bus_reply_method_return(message, "");
-}
-
-static int method_atx_action(sd_bus_message *message, void *userdata,
-                             sd_bus_error *return_error) {
+static int method_power_action(sd_bus_message *message, void *userdata,
+                               sd_bus_error *return_error) {
     const char *action = NULL;
     int result = sd_bus_message_read(message, "s", &action);
     if (result < 0) return result;
@@ -963,23 +987,23 @@ static int method_atx_action(sd_bus_message *message, void *userdata,
     char error[ERROR_SIZE] = {0};
     if (!service->controller_valid ||
         !controller_action(&service->controller, action == NULL ? "" : action, error)) {
-        if (error[0] == '\0') snprintf(error, sizeof(error), "%s", "ATX is not configured");
+        if (error[0] == '\0') snprintf(error, sizeof(error), "%s", "GPIO ATX is not configured");
         return dbus_failure(return_error, error);
     }
     return sd_bus_reply_method_return(message, "");
 }
 
-static int method_get_atx_state(sd_bus_message *message, void *userdata,
-                                sd_bus_error *return_error) {
+static int method_get_power_state(sd_bus_message *message, void *userdata,
+                                  sd_bus_error *return_error) {
     Service *service = userdata;
-    if (!service->controller_valid) return dbus_failure(return_error, "ATX is not configured");
+    if (!service->controller_valid) return dbus_failure(return_error, "GPIO ATX is not configured");
     ATXState state;
     char error[ERROR_SIZE] = {0};
     if (!controller_state(&service->controller, &state, error)) {
         return dbus_failure(return_error, error);
     }
     json_object *object = state_json(&state);
-    if (object == NULL) return dbus_failure(return_error, "encode ATX state: out of memory");
+    if (object == NULL) return dbus_failure(return_error, "encode power state: out of memory");
     const char *payload = json_object_to_json_string_ext(object, JSON_C_TO_STRING_PLAIN);
     int result = sd_bus_reply_method_return(message, "s", payload == NULL ? "{}" : payload);
     json_object_put(object);
@@ -1013,12 +1037,11 @@ static const sd_bus_vtable vtable[] = {
     SD_BUS_VTABLE_START(0),
     SD_BUS_METHOD("GetCapabilities", "", "s", method_get_capabilities,
                   SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("ConfigureATX", "s", "", method_configure_atx, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("ATXAction", "s", "", method_atx_action, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_METHOD("GetATXState", "", "s", method_get_atx_state, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("PowerAction", "s", "", method_power_action, SD_BUS_VTABLE_UNPRIVILEGED),
+    SD_BUS_METHOD("GetPowerState", "", "s", method_get_power_state, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("GetSettings", "", "s", method_get_settings, SD_BUS_VTABLE_UNPRIVILEGED),
     SD_BUS_METHOD("UpdateSettings", "s", "", method_update_settings, SD_BUS_VTABLE_UNPRIVILEGED),
-    SD_BUS_SIGNAL("ATXStateChanged", "s", 0),
+    SD_BUS_SIGNAL("PowerStateChanged", "s", 0),
     SD_BUS_VTABLE_END,
 };
 
@@ -1056,11 +1079,11 @@ static void publish_led_state(sd_bus *bus, Controller *controller,
     json_object *object = state_json(&state);
     if (object == NULL) return;
     const char *payload = json_object_to_json_string_ext(object, JSON_C_TO_STRING_PLAIN);
-    int result = sd_bus_emit_signal(bus, OBJECT_PATH, INTERFACE, "ATXStateChanged", "s",
+    int result = sd_bus_emit_signal(bus, OBJECT_PATH, INTERFACE, "PowerStateChanged", "s",
                                     payload == NULL ? "{}" : payload);
     json_object_put(object);
     if (result < 0) {
-        fprintf(stderr, "onekvm-device-gpio-atx: emit ATX state: %s\n", strerror(-result));
+        fprintf(stderr, "onekvm-device-gpio-atx: emit power state: %s\n", strerror(-result));
         return;
     }
     *last_publish_usec = monotonic_usec();
@@ -1209,6 +1232,11 @@ static int run(void) {
     return failed ? 1 : 0;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc == 2 && strcmp(argv[1], "--settings") == 0) return settings_command();
+    if (argc != 1) {
+        fprintf(stderr, "Usage: %s [--settings]\n", argv[0]);
+        return 1;
+    }
     return run();
 }

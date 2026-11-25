@@ -4,7 +4,9 @@
 
 This repository contains the OneKVM GPIO ATX extension. Its internal
 `onekvm-device-gpio-atx` provider owns front-panel power/reset outputs and
-PWR/HDD LED inputs through the Linux GPIO character-device v2 API.
+PWR/HDD LED inputs through the Linux GPIO character-device v2 API and provides
+the OneKVM `power` device capability (`PowerAction`, `GetPowerState` and
+`PowerStateChanged` on `org.onekvm.Device1`).
 
 The provider is a small ISO C17 daemon built on `sd-bus`, `json-c`, and GPIO
 cdev v2. It uses one `poll()` loop for D-Bus and GPIO edge interrupts; LED
@@ -23,7 +25,7 @@ its detector and Core service integration. An existing user mapping with
 `use_default: false` can also start the provider without machine defaults.
 OpenEmbedded packages the provider for the target CPU architecture.
 
-NanoKVM Pro Desk and PCIe use the same ATX mapping, supplied by
+NanoKVM Pro Desk and PCIe use the same GPIO mapping, supplied by
 `onekvm-machine-nanokvm-pro`: power `gpiochip0:7`, reset `gpiochip1:3`,
 PWR LED `gpiochip2:11`, and HDD LED `gpiochip2:10`. Button outputs are
 active-high and idle low; both LED inputs are active-low. These are
@@ -41,3 +43,9 @@ DESTDIR="$PWD/stage" make install PREFIX=/usr
 
 The install target deploys the provider together with its systemd unit, D-Bus
 policy/activation files, and OneKVM backend and system-plugin metadata.
+
+GPIO ATX is a non-system plugin and can be disabled in the plugin manager.
+Disabling stops the provider and blocks automatic activation until it is enabled
+again. Settings remain editable while disabled; the `--settings` command reads
+or updates them without opening GPIO lines. The native package remains part of
+the system image and is not removable through the plugin manager.
